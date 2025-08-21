@@ -9,7 +9,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Update feeds
         run: |
@@ -27,7 +27,8 @@ jobs:
           make -j$(nproc) || make -j1 V=s
 
       - name: Upload firmware
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: immortalwrt-ax3000
           path: bin/targets/
+          retention-days: 14
