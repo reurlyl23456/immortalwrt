@@ -6,101 +6,24 @@ on:
 jobs:
   build:
     runs-on: ubuntu-22.04
-    timeout-minutes: 180
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
-      - name: Cache feeds
-        uses: actions/cache@v3
-        with:
-          path: feeds
-          key: ${{ runner.os }}-feeds-${{ hashFiles('feeds.conf.default') }}
-          restore-keys: |
-            ${{ runner.os }}-feeds-
-
-      - name: Cache toolchain
-        uses: actions/cache@v3
-        with:
-          path: toolchain
-          key: ${{ runner.os }}-toolchain-${{ hashFiles('toolchain/README.md') }}
-          restore-keys: |
-            ${{ runner.os }}-toolchain-
 
       - name: Update feeds
         run: |
           ./scripts/feeds update -a
           ./scripts/feeds install -a
 
-      - name: Generate .config for AX3000
+      - name: Check .config
         run: |
-          cat > .config <<'EOF'
-# 目标设备：红米 AX3000
-CONFIG_TARGET_ipq50xx=y
-CONFIG_TARGET_ipq50xx_DEVICE_redmi_ax3000=y
-
-# LuCI 界面
-CONFIG_PACKAGE_luci=y
-CONFIG_LUCI_LANG_zh_Hans=y
-CONFIG_PACKAGE_luci-ssl=y
-CONFIG_PACKAGE_luci-theme-bootstrap=y
-
-# PassWall 主体及依赖
-CONFIG_PACKAGE_luci-app-passwall=y
-CONFIG_PACKAGE_passwall=y
-CONFIG_PACKAGE_ipset=y
-CONFIG_PACKAGE_ip-full=y
-CONFIG_PACKAGE_iptables-mod-tproxy=y
-CONFIG_PACKAGE_kmod-ipt-nat6=y
-
-# 协议支持
-CONFIG_PACKAGE_xray-core=y
-CONFIG_PACKAGE_trojan-plus=y
-CONFIG_PACKAGE_hysteria=y
-
-# DNS 支持
-CONFIG_PACKAGE_dnsmasq-full=y
-CONFIG_PACKAGE_luci-app-dnsforwarder=y
-CONFIG_PACKAGE_luci-app-smartdns=y
-
-# 常用网络工具
-CONFIG_PACKAGE_curl=y
-CONFIG_PACKAGE_wget=y
-CONFIG_PACKAGE_iperf3=y
-CONFIG_PACKAGE_tcpdump=y
-CONFIG_PACKAGE_nmap=y
-
-# 内核及固件优化
-CONFIG_TARGET_KERNEL_COMPRESS_XZ=y
-CONFIG_TARGET_ROOTFS_SQUASHFS=y
-CONFIG_TARGET_UBI_IMAGES=y
-CONFIG_TARGET_IMAGES_GZIP=y
-CONFIG_TARGET_IMAGES_PAD=y
-CONFIG_TARGET_KERNEL_PARTSIZE=64
-CONFIG_TARGET_ROOTFS_PARTSIZE=256
-
-# Overlay 扩展支持
-CONFIG_TARGET_ROOTFS_EXT4=y
-
-# 系统功能增强
-CONFIG_PACKAGE_block-mount=y
-CONFIG_PACKAGE_kmod-fs-ext4=y
-CONFIG_PACKAGE_kmod-usb-core=y
-CONFIG_PACKAGE_kmod-usb-storage=y
-CONFIG_PACKAGE_kmod-fs-vfat=y
-CONFIG_PACKAGE_kmod-nls-cp437=y
-CONFIG_PACKAGE_kmod-nls-utf8=y
-CONFIG_PACKAGE_kmod-fs-exfat=y
-CONFIG_PACKAGE_kmod-fs-ntfs=y
-CONFIG_PACKAGE_parted=y
-
-# 优化内存占用
-CONFIG_BUSYBOX_CUSTOM=y
-CONFIG_BUSYBOX_DEFAULT_FEATURES=y
-CONFIG_BUSYBOX_CONFIG_FEATURE_WGET=y
-EOF
-          echo "✅ .config 已生成"
+          if [ -f "$GITHUB_WORKSPACE/.config" ]; then
+            echo "✅ .config found, using existing file"
+          else
+            echo "❌ .config not found, workflow cannot continue"
+            exit 1
+          fi
 
       - name: Compile ImmortalWrt
         run: |
@@ -108,14 +31,9 @@ EOF
           make download -j$(nproc)
           make -j$(nproc) V=s || make -j1 V=s
 
-      - name: Print generated UBI file path
-        run: |
-          echo "🔹 Generated firmware file(s):"
-          find bin/targets/ipq50xx/ -type f -name "*squashfs-nand-factory.ubi" || echo "未找到 UBI 文件"
-
-      - name: Upload firmware artifact
+      - name: Upload firmware
         uses: actions/upload-artifact@v4
         with:
           name: immortalwrt-ax3000
-          path: bin/targets/ipq50xx/*squashfs-nand-factory.ubi
+          path: bin/targets/ipq50xx/*/openwrt-*-ipq50xx-*-factory.ubi
           retention-days: 14
