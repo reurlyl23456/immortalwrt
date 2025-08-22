@@ -12,13 +12,26 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Cache feeds
+        uses: actions/cache@v3
+        with:
+          path: feeds
+          key: ${{ runner.os }}-feeds-${{ hashFiles('feeds.conf.default') }}
+          restore-keys: |
+            ${{ runner.os }}-feeds-
+
+      - name: Cache toolchain
+        uses: actions/cache@v3
+        with:
+          path: toolchain
+          key: ${{ runner.os }}-toolchain-${{ hashFiles('toolchain/README.md') }}
+          restore-keys: |
+            ${{ runner.os }}-toolchain-
+
       - name: Update feeds
         run: |
           ./scripts/feeds update -a
           ./scripts/feeds install -a
-
-      - name: Show current directory
-        run: pwd
 
       - name: Generate .config for AX3000
         run: |
@@ -45,8 +58,6 @@ CONFIG_PACKAGE_kmod-ipt-nat6=y
 CONFIG_PACKAGE_xray-core=y
 CONFIG_PACKAGE_trojan-plus=y
 CONFIG_PACKAGE_hysteria=y
-# CONFIG_PACKAGE_shadowsocks-libev-ss-local=y
-# CONFIG_PACKAGE_shadowsocksr-libev-ssr-local=y
 
 # DNS 支持
 CONFIG_PACKAGE_dnsmasq-full=y
@@ -72,9 +83,6 @@ CONFIG_TARGET_ROOTFS_PARTSIZE=256
 # Overlay 扩展支持
 CONFIG_TARGET_ROOTFS_EXT4=y
 
-# 移除不必要的包
-# CONFIG_PACKAGE_luci-theme-argon is not set
-
 # 系统功能增强
 CONFIG_PACKAGE_block-mount=y
 CONFIG_PACKAGE_kmod-fs-ext4=y
@@ -94,24 +102,20 @@ CONFIG_BUSYBOX_CONFIG_FEATURE_WGET=y
 EOF
           echo "✅ .config 已生成"
 
-      - name: Compile ImmortalWrt (AX3000, squashfs-nand-factory)
+      - name: Compile ImmortalWrt
         run: |
           make defconfig
-          make download -j2
-          make -j2 V=s || make -j1 V=s
-
-      - name: Show last 100 lines if build failed
-        if: failure()
-        run: tail -n 100 build_dir/target-*/log/*.log || echo "No log found"
+          make download -j$(nproc)
+          make -j$(nproc) V=s || make -j1 V=s
 
       - name: Print generated UBI file path
         run: |
           echo "🔹 Generated firmware file(s):"
-          find bin/targets/ipq50xx/ -type f -name "*.ubi" || echo "未找到 UBI 文件"
+          find bin/targets/ipq50xx/ -type f -name "*squashfs-nand-factory.ubi" || echo "未找到 UBI 文件"
 
       - name: Upload firmware artifact
         uses: actions/upload-artifact@v4
         with:
           name: immortalwrt-ax3000
-          path: bin/targets/ipq50xx/
+          path: bin/targets/ipq50xx/*squashfs-nand-factory.ubi
           retention-days: 14
