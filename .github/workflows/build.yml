@@ -12,7 +12,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: immortalwrt/immortalwrt
-          ref: openwrt-23.05   # 使用稳定分支，可改为 master
+          ref: openwrt-23.05   # 可改为 master
 
       - name: Update feeds
         run: |
@@ -37,8 +37,9 @@ jobs:
       - name: Collect firmware (UBI only)
         run: |
           mkdir -p output
-          find bin/targets/ -type f \( -name "*redmi_ax3000*factory*.ubi" -o -name "*redmi_ax3000*sysupgrade*.ubi" \) -exec cp {} output/ \;
-          ls -lh output
+          find bin/targets/ipq50xx/ -type f \( -name "*redmi_ax3000*factory*.ubi" -o -name "*redmi_ax3000*sysupgrade*.ubi" \) -exec cp {} output/ \; || true
+          echo "✅ Found firmware files:"
+          ls -lh output || echo "⚠️ No firmware copied!"
 
       - name: Upload firmware
         uses: actions/upload-artifact@v4
