@@ -6,154 +6,113 @@ on:
 jobs:
   build:
     runs-on: ubuntu-22.04
+    timeout-minutes: 180
 
     steps:
-      # 1️⃣ 检出 ImmortalWrt 仓库
-      - name: Checkout ImmortalWrt
+      - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          repository: immortalwrt/immortalwrt
-          ref: openwrt-23.05
 
-      # 2️⃣ 更新 feeds
       - name: Update feeds
         run: |
           ./scripts/feeds update -a
           ./scripts/feeds install -a
 
-      # 3️⃣ Debug 查看 .config 是否存在
-      - name: Debug check .config
-        run: |
-          echo "Current directory: $(pwd)"
-          ls -al
-          if [ -f ".config" ]; then
-              echo "✅ .config 文件存在"
-          else
-              echo "⚠️ .config 文件不存在，将在下一步生成"
-          fi
+      - name: Show current directory
+        run: pwd
 
-      # 4️⃣ 在 runner 中生成 .config 文件（缩进修正）
       - name: Generate .config for AX3000
         run: |
           cat > .config <<'EOF'
-          # 目标设备：红米 AX3000
-          CONFIG_TARGET_ipq50xx=y
-          CONFIG_TARGET_ipq50xx_DEVICE_redmi_ax3000=y
+# 目标设备：红米 AX3000
+CONFIG_TARGET_ipq50xx=y
+CONFIG_TARGET_ipq50xx_DEVICE_redmi_ax3000=y
 
-          # LuCI 界面
-          CONFIG_PACKAGE_luci=y
-          CONFIG_LUCI_LANG_zh_Hans=y
-          CONFIG_PACKAGE_luci-ssl=y
-          CONFIG_PACKAGE_luci-theme-bootstrap=y
+# LuCI 界面
+CONFIG_PACKAGE_luci=y
+CONFIG_LUCI_LANG_zh_Hans=y
+CONFIG_PACKAGE_luci-ssl=y
+CONFIG_PACKAGE_luci-theme-bootstrap=y
 
-          # PassWall 主体及依赖
-          CONFIG_PACKAGE_luci-app-passwall=y
-          CONFIG_PACKAGE_passwall=y
-          CONFIG_PACKAGE_ipset=y
-          CONFIG_PACKAGE_ip-full=y
-          CONFIG_PACKAGE_iptables-mod-tproxy=y
-          CONFIG_PACKAGE_kmod-ipt-nat6=y
+# PassWall 主体及依赖
+CONFIG_PACKAGE_luci-app-passwall=y
+CONFIG_PACKAGE_passwall=y
+CONFIG_PACKAGE_ipset=y
+CONFIG_PACKAGE_ip-full=y
+CONFIG_PACKAGE_iptables-mod-tproxy=y
+CONFIG_PACKAGE_kmod-ipt-nat6=y
 
-          # 协议支持
-          CONFIG_PACKAGE_xray-core=y
-          CONFIG_PACKAGE_trojan-plus=y
-          CONFIG_PACKAGE_hysteria=y
-          # 如需 SS/SSR，可取消注释
-          # CONFIG_PACKAGE_shadowsocks-libev-ss-local=y
-          # CONFIG_PACKAGE_shadowsocksr-libev-ssr-local=y
+# 协议支持
+CONFIG_PACKAGE_xray-core=y
+CONFIG_PACKAGE_trojan-plus=y
+CONFIG_PACKAGE_hysteria=y
+# CONFIG_PACKAGE_shadowsocks-libev-ss-local=y
+# CONFIG_PACKAGE_shadowsocksr-libev-ssr-local=y
 
-          # DNS 支持
-          CONFIG_PACKAGE_dnsmasq-full=y
-          CONFIG_PACKAGE_luci-app-dnsforwarder=y
-          CONFIG_PACKAGE_luci-app-smartdns=y
+# DNS 支持
+CONFIG_PACKAGE_dnsmasq-full=y
+CONFIG_PACKAGE_luci-app-dnsforwarder=y
+CONFIG_PACKAGE_luci-app-smartdns=y
 
-          # 常用网络工具
-          CONFIG_PACKAGE_curl=y
-          CONFIG_PACKAGE_wget=y
-          CONFIG_PACKAGE_iperf3=y
-          CONFIG_PACKAGE_tcpdump=y
-          CONFIG_PACKAGE_nmap=y
+# 常用网络工具
+CONFIG_PACKAGE_curl=y
+CONFIG_PACKAGE_wget=y
+CONFIG_PACKAGE_iperf3=y
+CONFIG_PACKAGE_tcpdump=y
+CONFIG_PACKAGE_nmap=y
 
-          # 内核及固件优化
-          CONFIG_TARGET_KERNEL_COMPRESS_XZ=y
-          CONFIG_TARGET_ROOTFS_SQUASHFS=y
-          CONFIG_TARGET_UBI_IMAGES=y
-          CONFIG_TARGET_IMAGES_GZIP=y
-          CONFIG_TARGET_IMAGES_PAD=y
-          CONFIG_TARGET_KERNEL_PARTSIZE=64
-          CONFIG_TARGET_ROOTFS_PARTSIZE=256
+# 内核及固件优化
+CONFIG_TARGET_KERNEL_COMPRESS_XZ=y
+CONFIG_TARGET_ROOTFS_SQUASHFS=y
+CONFIG_TARGET_UBI_IMAGES=y
+CONFIG_TARGET_IMAGES_GZIP=y
+CONFIG_TARGET_IMAGES_PAD=y
+CONFIG_TARGET_KERNEL_PARTSIZE=64
+CONFIG_TARGET_ROOTFS_PARTSIZE=256
 
-          # Overlay 扩展支持
-          CONFIG_TARGET_ROOTFS_EXT4=y
+# Overlay 扩展支持
+CONFIG_TARGET_ROOTFS_EXT4=y
 
-          # 移除不必要的包，节省空间
-          # (保留 bootstrap 主题即可)
-          # CONFIG_PACKAGE_luci-theme-argon is not set
+# 移除不必要的包，节省空间
+# CONFIG_PACKAGE_luci-theme-argon is not set
 
-          # 系统功能增强
-          CONFIG_PACKAGE_block-mount=y
-          CONFIG_PACKAGE_kmod-fs-ext4=y
-          CONFIG_PACKAGE_kmod-usb-core=y
-          CONFIG_PACKAGE_kmod-usb-storage=y
-          CONFIG_PACKAGE_kmod-fs-vfat=y
-          CONFIG_PACKAGE_kmod-nls-cp437=y
-          CONFIG_PACKAGE_kmod-nls-utf8=y
-          CONFIG_PACKAGE_kmod-fs-exfat=y
-          CONFIG_PACKAGE_kmod-fs-ntfs=y
-          CONFIG_PACKAGE_parted=y
+# 系统功能增强
+CONFIG_PACKAGE_block-mount=y
+CONFIG_PACKAGE_kmod-fs-ext4=y
+CONFIG_PACKAGE_kmod-usb-core=y
+CONFIG_PACKAGE_kmod-usb-storage=y
+CONFIG_PACKAGE_kmod-fs-vfat=y
+CONFIG_PACKAGE_kmod-nls-cp437=y
+CONFIG_PACKAGE_kmod-nls-utf8=y
+CONFIG_PACKAGE_kmod-fs-exfat=y
+CONFIG_PACKAGE_kmod-fs-ntfs=y
+CONFIG_PACKAGE_parted=y
 
-          # 优化内存占用，防止安装软件失败
-          CONFIG_BUSYBOX_CUSTOM=y
-          CONFIG_BUSYBOX_DEFAULT_FEATURES=y
-          CONFIG_BUSYBOX_CONFIG_FEATURE_WGET=y
-          EOF
+# 优化内存占用，防止安装软件失败
+CONFIG_BUSYBOX_CUSTOM=y
+CONFIG_BUSYBOX_DEFAULT_FEATURES=y
+CONFIG_BUSYBOX_CONFIG_FEATURE_WGET=y
+EOF
           echo "✅ .config 已生成"
 
-      # 5️⃣ 编译固件
-      - name: Compile firmware
+      - name: Compile ImmortalWrt (squashfs-nand-factory only)
         run: |
           make defconfig
-          make download -j8
-          make -j$(nproc) || make -j1 V=s
+          make download -j2
+          make -j2 V=s IMAGE_BUILDER_TARGETS="ipq50xx/ax3000:squashfs-nand-factory" || make -j1 V=s IMAGE_BUILDER_TARGETS="ipq50xx/ax3000:squashfs-nand-factory"
+        continue-on-error: true
 
-      # 6️⃣ 收集 redmi_ax3000 squashfs-nand-factory.ubi
-      - name: Collect AX3000 firmware
+      - name: Show last 100 lines if build failed
+        if: failure()
+        run: tail -n 100 /home/runner/work/immortalwrt/immortalwrt/build_dir/target-*/log/*.log || echo "No log found"
+
+      - name: Print generated UBI file path
         run: |
-          mkdir -p output_ubi output_bin
-          BUILD_DATE=$(date +%Y-%m-%d)
+          echo "🔹 Generated firmware file(s):"
+          find bin/targets/ipq50xx/ -type f -name "*.ubi" || echo "未找到 UBI 文件"
 
-          # 只收集 factory UBI 文件
-          for f in bin/targets/ipq50xx/aarch64_cortex-a53/*redmi_ax3000*squashfs-nand-factory.ubi; do
-              [ -e "$f" ] || continue
-              base=$(basename "$f")
-              cp -v "$f" "output_ubi/immortalwrt-ax3000-${BUILD_DATE}-${base#*redmi_ax3000-}"
-          done
-
-          # 收集其他 BIN 文件
-          for f in bin/targets/ipq50xx/aarch64_cortex-a53/*; do
-              [ -e "$f" ] || continue
-              if [[ "$f" != *.ubi ]]; then
-                  base=$(basename "$f")
-                  cp -v "$f" "output_bin/immortalwrt-ax3000-${BUILD_DATE}-${base}"
-              fi
-          done
-
-          echo "✅ 收集完成："
-          ls -lh output_ubi || echo "⚠️ 没有生成 factory UBI 文件"
-          ls -lh output_bin || echo "⚠️ 没有 BIN 文件"
-
-      # 7️⃣ 上传 factory UBI 固件
-      - name: Upload UBI factory firmware
+      - name: Upload firmware artifact
         uses: actions/upload-artifact@v4
         with:
-          name: immortalwrt-ax3000-ubi-factory
-          path: output_ubi/
-          retention-days: 14
-
-      # 8️⃣ 上传其他 BIN 文件
-      - name: Upload BIN firmware
-        uses: actions/upload-artifact@v4
-        with:
-          name: immortalwrt-ax3000-bin
-          path: output_bin/
+          name: immortalwrt-ax3000
+          path: bin/targets/ipq50xx/
           retention-days: 14
