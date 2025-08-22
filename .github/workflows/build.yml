@@ -94,11 +94,11 @@ CONFIG_BUSYBOX_CONFIG_FEATURE_WGET=y
 EOF
           echo "✅ .config 已生成"
 
-      - name: Compile ImmortalWrt (squashfs-nand-factory only)
+      - name: Compile ImmortalWrt (AX3000, squashfs-nand-factory)
         run: |
           make defconfig
           make download -j2
-          make -j2 V=s IMAGE_BUILDER_TARGETS="ipq50xx/ax3000:squashfs-nand-factory" || make -j1 V=s IMAGE_BUILDER_TARGETS="ipq50xx/ax3000:squashfs-nand-factory"
+          make -j2 V=s || make -j1 V=s
         continue-on-error: true
 
       - name: Show last 100 lines if build failed
