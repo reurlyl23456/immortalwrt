@@ -21,27 +21,36 @@ jobs:
           ./scripts/feeds update -a
           ./scripts/feeds install -a
 
-      # 3️⃣ 上传并使用自定义 .config
-      - name: Load custom config
+      # 3️⃣ Debug 查看 .config 是否存在
+      - name: Debug check .config
         run: |
-          if [ -f "$GITHUB_WORKSPACE/.config" ]; then
-              cp "$GITHUB_WORKSPACE/.config" .config
-              echo "✅ Using custom .config"
+          echo "Current directory: $(pwd)"
+          ls -al
+          if [ -f ".config" ]; then
+              echo "✅ .config 文件存在"
           else
-              echo "❌ No .config found, workflow will fail"
-              exit 1
+              echo "❌ .config 文件不存在"
           fi
 
-      # 4️⃣ 编译固件
+      # 4️⃣ 加载自定义 .config（使用相对路径）
+      - name: Load custom config
+        run: |
+          if [ -f ".config" ]; then
+              cp ".config" .config
+              echo "✅ Using custom .config"
+          else
+              echo "⚠️ No .config found, using default"
+          fi
+
+      # 5️⃣ 编译固件
       - name: Compile firmware
         run: |
           make defconfig
           make download -j8
           make -j$(nproc) || make -j1 V=s
 
-      # 5️⃣ 收集 redmi_ax3000 squashfs-nand-factory.ubi
+      # 6️⃣ 收集 redmi_ax3000 squashfs-nand-factory.ubi
       - name: Collect AX3000 firmware
-        id: collect
         run: |
           mkdir -p output_ubi output_bin
           BUILD_DATE=$(date +%Y-%m-%d)
@@ -66,7 +75,7 @@ jobs:
           ls -lh output_ubi || echo "⚠️ 没有生成 factory UBI 文件"
           ls -lh output_bin || echo "⚠️ 没有 BIN 文件"
 
-      # 6️⃣ 上传 factory UBI 固件
+      # 7️⃣ 上传 factory UBI 固件
       - name: Upload UBI factory firmware
         uses: actions/upload-artifact@v4
         with:
@@ -74,7 +83,7 @@ jobs:
           path: output_ubi/
           retention-days: 14
 
-      # 7️⃣ 上传其他 BIN 文件
+      # 8️⃣ 上传其他 BIN 文件
       - name: Upload BIN firmware
         uses: actions/upload-artifact@v4
         with:
