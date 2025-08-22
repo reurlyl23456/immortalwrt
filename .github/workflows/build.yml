@@ -1,4 +1,4 @@
-name: Build ImmortalWrt for AX3000
+name: Build ImmortalWrt for AX3000 (UBI)
 
 on:
   workflow_dispatch:
@@ -8,8 +8,11 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
-      - name: Checkout
+      - name: Checkout ImmortalWrt
         uses: actions/checkout@v4
+        with:
+          repository: immortalwrt/immortalwrt
+          ref: openwrt-23.05   # 使用稳定分支，可改为 master
 
       - name: Update feeds
         run: |
@@ -18,17 +21,28 @@ jobs:
 
       - name: Load custom config
         run: |
-          [ -f .config ] && echo "Using custom config" || echo "No .config found"
+          if [ -f $GITHUB_WORKSPACE/.config ]; then
+            cp $GITHUB_WORKSPACE/.config .config
+            echo "✅ Using custom .config"
+          else
+            echo "⚠️ No custom .config found, using default"
+          fi
 
-      - name: Compile
+      - name: Compile firmware
         run: |
           make defconfig
           make download -j8
           make -j$(nproc) || make -j1 V=s
 
+      - name: Collect firmware (UBI only)
+        run: |
+          mkdir -p output
+          find bin/targets/ -type f \( -name "*redmi_ax3000*factory*.ubi" -o -name "*redmi_ax3000*sysupgrade*.ubi" \) -exec cp {} output/ \;
+          ls -lh output
+
       - name: Upload firmware
         uses: actions/upload-artifact@v4
         with:
-          name: immortalwrt-ax3000
-          path: bin/targets/
+          name: immortalwrt-ax3000-ubi
+          path: output/
           retention-days: 14
