@@ -26,6 +26,7 @@ jobs:
             echo "✅ Using custom .config"
           else
             echo "⚠️ No .config found, using default"
+          fi
 
       - name: Compile firmware
         run: |
