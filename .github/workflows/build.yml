@@ -99,11 +99,10 @@ EOF
           make defconfig
           make download -j2
           make -j2 V=s || make -j1 V=s
-        continue-on-error: true
 
       - name: Show last 100 lines if build failed
         if: failure()
-        run: tail -n 100 /home/runner/work/immortalwrt/immortalwrt/build_dir/target-*/log/*.log || echo "No log found"
+        run: tail -n 100 build_dir/target-*/log/*.log || echo "No log found"
 
       - name: Print generated UBI file path
         run: |
