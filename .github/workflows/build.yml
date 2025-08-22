@@ -8,61 +8,65 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
+      # 1️⃣ 检出 ImmortalWrt 仓库
       - name: Checkout ImmortalWrt
         uses: actions/checkout@v4
         with:
           repository: immortalwrt/immortalwrt
           ref: openwrt-23.05
 
+      # 2️⃣ 更新 feeds
       - name: Update feeds
         run: |
           ./scripts/feeds update -a
           ./scripts/feeds install -a
 
+      # 3️⃣ 上传并使用自定义 .config
       - name: Load custom config
         run: |
-          if [ -f $GITHUB_WORKSPACE/.config ]; then
-            cp $GITHUB_WORKSPACE/.config .config
-            echo "✅ Using custom .config"
+          if [ -f "$GITHUB_WORKSPACE/.config" ]; then
+              cp "$GITHUB_WORKSPACE/.config" .config
+              echo "✅ Using custom .config"
           else
-            echo "⚠️ No .config found, using default"
+              echo "❌ No .config found, workflow will fail"
+              exit 1
           fi
 
+      # 4️⃣ 编译固件
       - name: Compile firmware
         run: |
           make defconfig
           make download -j8
           make -j$(nproc) || make -j1 V=s
 
+      # 5️⃣ 收集 redmi_ax3000 squashfs-nand-factory.ubi
       - name: Collect AX3000 firmware
         id: collect
         run: |
           mkdir -p output_ubi output_bin
           BUILD_DATE=$(date +%Y-%m-%d)
 
-          # 只收集 redmi_ax3000 的 squashfs-nand-factory.ubi
+          # 只收集 factory UBI 文件
           for f in bin/targets/ipq50xx/aarch64_cortex-a53/*redmi_ax3000*squashfs-nand-factory.ubi; do
-            [ -e "$f" ] || continue
-            base=$(basename "$f")
-            new="immortalwrt-ax3000-${BUILD_DATE}-${base#*redmi_ax3000-}"
-            cp -v "$f" "output_ubi/$new"
+              [ -e "$f" ] || continue
+              base=$(basename "$f")
+              cp -v "$f" "output_ubi/immortalwrt-ax3000-${BUILD_DATE}-${base#*redmi_ax3000-}"
           done
 
-          # 兜底上传 BIN 文件
+          # 收集其他 BIN 文件
           for f in bin/targets/ipq50xx/aarch64_cortex-a53/*; do
-            [ -e "$f" ] || continue
-            if [[ "$f" != *.ubi ]]; then
-              base=$(basename "$f")
-              cp -v "$f" "output_bin/immortalwrt-ax3000-${BUILD_DATE}-${base}"
-            fi
+              [ -e "$f" ] || continue
+              if [[ "$f" != *.ubi ]]; then
+                  base=$(basename "$f")
+                  cp -v "$f" "output_bin/immortalwrt-ax3000-${BUILD_DATE}-${base}"
+              fi
           done
 
           echo "✅ 收集完成："
-          echo "UBI factory 文件："
-          ls -lh output_ubi || echo "⚠️ 没有 squashfs-nand-factory UBI 文件"
-          echo "BIN 文件："
+          ls -lh output_ubi || echo "⚠️ 没有生成 factory UBI 文件"
           ls -lh output_bin || echo "⚠️ 没有 BIN 文件"
 
+      # 6️⃣ 上传 factory UBI 固件
       - name: Upload UBI factory firmware
         uses: actions/upload-artifact@v4
         with:
@@ -70,6 +74,7 @@ jobs:
           path: output_ubi/
           retention-days: 14
 
+      # 7️⃣ 上传其他 BIN 文件
       - name: Upload BIN firmware
         uses: actions/upload-artifact@v4
         with:
