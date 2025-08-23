@@ -31,9 +31,26 @@ jobs:
           make download -j$(nproc)
           make -j$(nproc) V=s || make -j1 V=s
 
-      - name: Upload firmware
+      - name: List build output
+        run: |
+          echo "🔍 Listing all files under bin/targets/ipq50xx/"
+          ls -R bin/targets/ipq50xx/
+
+      - name: Find factory firmware
+        id: find_factory
+        run: |
+          # 查找包含 "factory" 的镜像文件
+          FILE=$(find bin/targets/ipq50xx/ -type f -name '*factory*' | head -n 1)
+          if [ -z "$FILE" ]; then
+            echo "❌ No factory firmware found!"
+            exit 1
+          fi
+          echo "✅ Factory firmware found: $FILE"
+          echo "file=$FILE" >> $GITHUB_OUTPUT
+
+      - name: Upload factory firmware
         uses: actions/upload-artifact@v4
         with:
-          name: immortalwrt-ax3000
-          path: bin/targets/ipq50xx/*/immortalwrt-*-ipq50xx-*-factory.ubi
+          name: immortalwrt-ax3000-factory
+          path: ${{ steps.find_factory.outputs.file }}
           retention-days: 14
