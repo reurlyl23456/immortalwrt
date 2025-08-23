@@ -33,13 +33,13 @@ jobs:
 
       - name: List build output
         run: |
-          echo "🔍 Listing all files under bin/targets/ipq50xx/generic/"
-          ls -lh bin/targets/ipq50xx/generic/ || true
+          echo "🔍 Listing all files under bin/targets/"
+          ls -R bin/targets/ || true
 
       - name: Find squashfs-factory firmware
         id: find_factory
         run: |
-          FILE=$(find bin/targets/ipq50xx/generic/ -type f -name '*squashfs-factory.ubi' | head -n 1)
+          FILE=$(find bin/targets/ -type f -name '*squashfs-factory.ubi' | head -n 1)
           if [ -z "$FILE" ]; then
             echo "❌ No squashfs-factory.ubi firmware found!"
             exit 1
@@ -52,4 +52,22 @@ jobs:
         with:
           name: immortalwrt-ax3000-squashfs-factory
           path: ${{ steps.find_factory.outputs.file }}
+          retention-days: 14
+
+      - name: Find sysupgrade firmware
+        id: find_sysupgrade
+        run: |
+          FILE=$(find bin/targets/ -type f -name '*squashfs-sysupgrade.bin' | head -n 1)
+          if [ -z "$FILE" ]; then
+            echo "❌ No squashfs-sysupgrade.bin firmware found!"
+            exit 1
+          fi
+          echo "✅ Found squashfs-sysupgrade.bin: $FILE"
+          echo "file=$FILE" >> $GITHUB_OUTPUT
+
+      - name: Upload sysupgrade firmware
+        uses: actions/upload-artifact@v4
+        with:
+          name: immortalwrt-ax3000-squashfs-sysupgrade
+          path: ${{ steps.find_sysupgrade.outputs.file }}
           retention-days: 14
