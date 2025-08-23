@@ -35,5 +35,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: immortalwrt-ax3000
-          path: bin/targets/ipq50xx/*/openwrt-*-ipq50xx-*-factory.ubi
+          path: bin/targets/ipq50xx/*/immortalwrt-*-ipq50xx-*-factory.ubi
           retention-days: 14
