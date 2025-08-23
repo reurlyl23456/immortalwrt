@@ -33,24 +33,23 @@ jobs:
 
       - name: List build output
         run: |
-          echo "🔍 Listing all files under bin/targets/ipq50xx/"
-          ls -R bin/targets/ipq50xx/
+          echo "🔍 Listing all files under bin/targets/ipq50xx/generic/"
+          ls -lh bin/targets/ipq50xx/generic/ || true
 
-      - name: Find factory firmware
+      - name: Find squashfs-factory firmware
         id: find_factory
         run: |
-          # 查找包含 "factory" 的镜像文件
-          FILE=$(find bin/targets/ipq50xx/ -type f -name '*factory*' | head -n 1)
+          FILE=$(find bin/targets/ipq50xx/generic/ -type f -name '*squashfs-factory.ubi' | head -n 1)
           if [ -z "$FILE" ]; then
-            echo "❌ No factory firmware found!"
+            echo "❌ No squashfs-factory.ubi firmware found!"
             exit 1
           fi
-          echo "✅ Factory firmware found: $FILE"
+          echo "✅ Found squashfs-factory.ubi: $FILE"
           echo "file=$FILE" >> $GITHUB_OUTPUT
 
-      - name: Upload factory firmware
+      - name: Upload squashfs-factory firmware
         uses: actions/upload-artifact@v4
         with:
-          name: immortalwrt-ax3000-factory
+          name: immortalwrt-ax3000-squashfs-factory
           path: ${{ steps.find_factory.outputs.file }}
           retention-days: 14
