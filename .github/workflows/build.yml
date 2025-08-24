@@ -15,7 +15,7 @@ jobs:
       - name: Checkout AX3000 repo
         uses: actions/checkout@v4
         with:
-          repository: hzyitc/openwrt-redmi-ax3000
+          repository: reurlyl23456/openwrt-redmi-ax3000
           ref: main
 
       - name: Install dependencies
