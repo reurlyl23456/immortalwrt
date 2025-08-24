@@ -1,4 +1,4 @@
-name: Build AX3000 firmware
+name: Build AX3000 Firmware
 
 on:
   workflow_dispatch:
@@ -12,12 +12,16 @@ jobs:
     env:
       CCACHE_DIR: ${{ github.workspace }}/.ccache
     steps:
+      # 1️⃣ Checkout AX3000 社区仓库到独立目录
       - name: Checkout AX3000 repo
         uses: actions/checkout@v4
         with:
-          repository: reurlyl23456/openwrt-redmi-ax3000
+          repository: hzyitc/openwrt-redmi-ax3000
           ref: main
+          path: openwrt-ax3000
+          token: ${{ secrets.PAT_TOKEN }}   # 如果是公有仓库可以删掉
 
+      # 2️⃣ 安装编译依赖
       - name: Install dependencies
         run: |
           sudo apt-get update
@@ -25,23 +29,31 @@ jobs:
             gcc-multilib g++-multilib gettext git libncurses5-dev libssl-dev \
             python3-distutils rsync unzip zlib1g-dev file wget curl ccache
 
+      # 3️⃣ 更新 feeds
       - name: Update feeds
         run: |
+          cd openwrt-ax3000
           ./scripts/feeds update -a
           ./scripts/feeds install -a
 
-      - name: Use custom .config
+      # 4️⃣ 使用自定义 .config
+      - name: Apply custom .config
         run: |
+          cd openwrt-ax3000
           cp ${{ github.workspace }}/.config .config
           make defconfig
 
+      # 5️⃣ 编译固件
       - name: Build firmware
         run: |
+          cd openwrt-ax3000
           make -j$(nproc) || make -j1 V=s
 
+      # 6️⃣ 查找 factory.ubi 固件
       - name: Find AX3000 factory.ubi
         id: find
         run: |
+          cd openwrt-ax3000
           FILE=$(find bin/targets/ -type f -name '*redmi-ax3000*squashfs-factory.ubi' | head -n 1)
           if [ -z "$FILE" ]; then
             echo "❌ No AX3000 squashfs-factory.ubi firmware found!"
@@ -52,6 +64,7 @@ jobs:
           echo "✅ Found firmware: $FILE"
           echo "file=$FILE" >> $GITHUB_OUTPUT
 
+      # 7️⃣ 上传 artifact
       - name: Upload AX3000 firmware
         uses: actions/upload-artifact@v4
         with:
